@@ -577,13 +577,21 @@ def doctor_command(
 ) -> None:
     """Verifica o ambiente: Python, dependências, navegadores e diretórios."""
     checks: list[tuple[str, bool, str]] = []
-    python_ok = sys.version_info >= (3, 10)
-    checks.append(("python", python_ok, f"{sys.version.split()[0]} (mínimo 3.10)"))
+    python_ok = sys.version_info >= (3, 11)
+    checks.append(("python", python_ok, f"{sys.version.split()[0]} (mínimo 3.11)"))
 
     # A ausência do Playwright é um *resultado* do diagnóstico, não um erro:
     # por isso a verificação usa importlib em vez de importar o pacote no topo.
     if importlib.util.find_spec("playwright") is None:
-        checks.append(("playwright", False, "instale com: pip install caravana[playwright]"))
+        checks.append(
+            (
+                "playwright",
+                False,
+                # Escapado: sem isso o Rich interpreta [playwright] como
+                # markup e o comando sugerido sai mutilado.
+                r"instale com: pip install caravana\[playwright]",
+            )
+        )
     else:
         module = importlib.import_module("playwright")
         checks.append(("playwright", True, f"pacote {getattr(module, '__version__', '?')}"))
@@ -595,7 +603,12 @@ def doctor_command(
             browser.close()
         checks.append(("chromium", True, f"navegador {version}"))
     except Exception as exc:
-        checks.append(("chromium", False, f"{type(exc).__name__}: {str(exc)[:80]}"))
+        detail = f"{type(exc).__name__}: {str(exc)[:80]}"
+        if isinstance(exc, ModuleNotFoundError):
+            detail = "requer o extra playwright (veja o item acima)"
+        elif "Executable doesn" in str(exc) or "playwright install" in str(exc):
+            detail = "instale o navegador com: playwright install chromium"
+        checks.append(("chromium", False, detail))
 
     writable = Path(".caravana")
     try:

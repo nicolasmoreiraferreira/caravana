@@ -24,19 +24,19 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from playwright.sync_api import (
-    Browser,
-    BrowserContext,
-    Locator,
-    Page,
-    Playwright,
-    sync_playwright,
-)
+if TYPE_CHECKING:  # pragma: no cover - apenas para tipagem
+    from playwright.sync_api import (
+        Browser,
+        BrowserContext,
+        Locator,
+        Page,
+        Playwright,
+    )
 
 from .config import Config, SessionConfig
-from .errors import ActionError, SessionError, StepFailed
+from .errors import ActionError, CaravanaError, SessionError, StepFailed
 from .events import Event, EventBus
 from .ledger import Ledger
 from .robots import RobotsRules, parse_robots
@@ -203,7 +203,7 @@ class SessionRunner:
     def __enter__(self) -> SessionRunner:
         started = time.perf_counter()
         try:
-            self._playwright = sync_playwright().start()
+            self._playwright = load_playwright()().start()
             self._browser = self._playwright.chromium.launch(headless=True)
             self._context = self._browser.new_context(**self._context_options())
             self._context.set_default_timeout(self.config.timeout_ms)
@@ -1073,6 +1073,25 @@ class SessionRunner:
         path = self.data_dir / f"{self.session_id}.json"
         path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=str), "utf-8")
         return path
+
+
+def load_playwright() -> Any:
+    """Importa o Playwright sob demanda.
+
+    O núcleo do projeto (validação, ledger, relatórios, verificação) não precisa
+    de navegador. Importar o Playwright no topo tornaria a instalação sem o
+    extra inútil — e a mensagem de erro, um ``ModuleNotFoundError`` cru, não
+    diria o que fazer. Aqui a falha é explícita e acionável.
+    """
+    try:
+        # Import tardio proposital: o núcleo do projeto funciona sem navegador.
+        from playwright.sync_api import sync_playwright  # noqa: PLC0415
+    except ImportError as exc:  # pragma: no cover - depende do ambiente
+        raise CaravanaError(
+            "o Playwright não está instalado; execute: pip install 'caravana[playwright]' "
+            "e depois: playwright install chromium"
+        ) from exc
+    return sync_playwright
 
 
 def _profile_path(run_dir: Path, session_id: str) -> Path:

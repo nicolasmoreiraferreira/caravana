@@ -35,17 +35,25 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "playwright>=1.45",
   "typer>=0.12.3",
   "rich>=13.7.1",
 ]
 
 [project.optional-dependencies]
+# Núcleo instalável sem navegador: `validate`, `plan`, `show`, `report` e
+# `verify` funcionam sem Playwright. Só a execução de fluxos exige o extra.
+playwright = [
+  "playwright>=1.45",
+]
 dev = [
   "pytest>=8.2",
   "pytest-cov>=5.0",
   "ruff>=0.6.5",
   "mypy>=1.11.2",
+  # Usado diretamente nos testes da CLI (`click.testing.Result`). É dependência
+  # transitiva do typer, mas importar um pacote direto sem declará-lo quebra
+  # quando o typer trocar de backend — e foi o que aconteceu no CI.
+  "click>=8.1",
 ]
 
 [project.scripts]
