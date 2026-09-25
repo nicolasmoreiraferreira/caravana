@@ -96,7 +96,10 @@ warn_unreachable = true
 disallow_untyped_decorators = false
 
 [[tool.mypy.overrides]]
-module = ["tomli"]
+# O Playwright é uma dependência opcional: numa instalação só com `[dev]` — que
+# é o caso do job de lint — ele não existe, e o mypy precisa continuar
+# verificando o resto do código em vez de reprovar o ambiente.
+module = ["playwright", "playwright.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

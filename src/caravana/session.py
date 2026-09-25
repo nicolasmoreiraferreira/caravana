@@ -631,7 +631,7 @@ class SessionRunner:
         url = self._url(str(params.get("url", "")))
         self._check_robots(url)
         wait_until = str(params.get("wait_until", "domcontentloaded"))
-        response = self.page.goto(url, wait_until=wait_until)  # type: ignore[arg-type]
+        response = self.page.goto(url, wait_until=wait_until)  # type: ignore[arg-type, unused-ignore]
         self.pages_visited += 1
         status = response.status if response else 0
         if status >= 400:
@@ -689,7 +689,7 @@ class SessionRunner:
         if not selector:
             raise ActionError("wait_for exige 'selector'")
         state = str(params.get("state", "visible"))
-        self.page.wait_for_selector(selector, state=state)  # type: ignore[arg-type]
+        self.page.wait_for_selector(selector, state=state)  # type: ignore[arg-type, unused-ignore]
         return ActionResult(message=f"elemento visível: {selector}")
 
     def _action_wait(self, params: dict[str, Any]) -> ActionResult:
