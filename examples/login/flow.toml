@@ -1,0 +1,40 @@
+# Fluxo de exemplo: autenticação com credenciais fora do arquivo.
+#
+# As credenciais chegam por ${secret.…}, lidas de variáveis de ambiente
+# CARAVANA_SECRET_DEMO_USER / CARAVANA_SECRET_DEMO_PASSWORD ou de um arquivo
+# passado com --secrets-file. Nenhum valor aparece no fluxo, no histórico ou
+# no relatório: o motor mascara os segredos em toda mensagem que persiste.
+
+[flow]
+name = "login"
+version = "1.0.0"
+description = "Autentica na área restrita e coleta o conteúdo protegido."
+
+[[flow.steps]]
+id = "abrir_login"
+action = "goto"
+name = "Abrir a tela de login"
+params = { url = "/login" }
+
+[[flow.steps]]
+id = "autenticar"
+action = "login"
+name = "Autenticar com credenciais do cofre"
+params = { user = "${secret.DEMO_USER}", password = "${secret.DEMO_PASSWORD}", success_selector = "#secret" }
+save_as = "autenticado"
+retries = 1
+retry_delay = 0.3
+
+[[flow.steps]]
+id = "coletar_painel"
+action = "extract"
+name = "Extrair o painel protegido"
+params = { fields = { titulo = "h1", conteudo = "#secret" } }
+save_as = "painel"
+artifacts = ["screenshot"]
+
+[[flow.steps]]
+id = "confirmar_url"
+action = "assert_url"
+name = "Confirmar que permaneceu no painel"
+params = { contains = "/dashboard" }

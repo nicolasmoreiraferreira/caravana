@@ -1,0 +1,22 @@
+# Configuração de exemplo: resiliência sob falha.
+#
+#   python examples/demo-site/server.py --port 8787
+#   caravana run --config examples/resiliencia/caravana.toml
+
+[flow]
+path = "flow.toml"
+
+[engine]
+workers = 2
+max_attempts = 3
+retry_delay = 0.2
+timeout_ms = 15000
+screenshots = "on_error"
+
+[vars]
+base = "http://127.0.0.1:8787"
+
+[[session]]
+id = "resiliente"
+count = 2
+base_url = "${var.base}"

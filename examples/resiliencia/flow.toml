@@ -1,0 +1,79 @@
+# Fluxo de exemplo: o que acontece quando a página falha, demora ou some.
+#
+# Conceitos demonstrados:
+#   * `retries`/`retry_delay`: nova tentativa automática antes de desistir;
+#   * `artifacts = ["screenshot"]`: evidência capturada no momento da falha;
+#   * `optional = true`: passo que pode falhar sem derrubar a sessão;
+#   * `on_error = "skip_to:…"`: desvio controlado quando um passo falha;
+#   * `when`: passo executado apenas se a condição for verdadeira;
+#   * `timeout_ms`: limite específico para um passo lento.
+
+[flow]
+name = "resiliencia"
+version = "1.0.0"
+description = "Exercita retry, passo opcional, desvio de erro e condição."
+
+[[flow.steps]]
+id = "pagina_instavel"
+action = "goto"
+name = "Abrir página que falha na primeira tentativa"
+params = { url = "/flaky" }
+retries = 2
+retry_delay = 0.2
+artifacts = ["screenshot"]
+
+[[flow.steps]]
+id = "confirmar_recuperacao"
+action = "assert_text"
+name = "Confirmar que a segunda tentativa funcionou"
+params = { selector = "#ok", equals = "flaky ok" }
+save_as = "recuperado"
+
+[[flow.steps]]
+id = "passo_opcional"
+action = "goto"
+name = "Passo opcional que sempre falha (404)"
+params = { url = "/rota-que-nao-existe" }
+optional = true
+retries = 0
+
+[[flow.steps]]
+id = "passo_condicional"
+action = "goto"
+name = "Passo condicional"
+params = { url = "/page/2" }
+when = "${session.data.recuperado} == True"
+
+[[flow.steps]]
+id = "pagina_lenta"
+action = "goto"
+name = "Página lenta com timeout próprio"
+params = { url = "/slow?ms=300" }
+timeout_ms = 8000
+
+[[flow.steps]]
+id = "confirmar_lentidao"
+action = "assert_text"
+name = "Confirmar conteúdo da página lenta"
+params = { selector = "#slow-ok", contains = "slow ok" }
+
+[[flow.steps]]
+id = "falha_com_desvio"
+action = "goto"
+name = "Falha que desvia o fluxo"
+params = { url = "/rota-inexistente" }
+retries = 0
+on_error = "skip_to:fechamento"
+
+[[flow.steps]]
+id = "passo_pulado"
+action = "goto"
+name = "Passo que não deve executar"
+params = { url = "/page/3" }
+
+[[flow.steps]]
+id = "fechamento"
+action = "extract"
+name = "Coleta final"
+params = { fields = { titulo = "h1", estado = "#slow-ok" } }
+save_as = "final"

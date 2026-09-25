@@ -1,0 +1,24 @@
+# Configuração de exemplo: login em duas contas ao mesmo tempo.
+#
+#   export CARAVANA_SECRET_DEMO_USER=demo
+#   export CARAVANA_SECRET_DEMO_PASSWORD=demo
+#   python examples/demo-site/server.py --port 8787
+#   caravana run --config examples/login/caravana.toml
+
+[flow]
+path = "flow.toml"
+
+[engine]
+workers = 2
+max_attempts = 2
+timeout_ms = 15000
+screenshots = "on_error"
+
+[vars]
+base = "http://127.0.0.1:8787"
+
+[[session]]
+id = "conta"
+count = 2
+base_url = "${var.base}"
+start_url = "/login"

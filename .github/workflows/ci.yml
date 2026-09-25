@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  schedule:
+    # Uma execução semanal pega quebras causadas por dependências novas.
+    - cron: "0 6 * * 1"
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  qualidade:
+    name: lint e tipagem
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - name: ruff (regras)
+        run: ruff check --output-format=github .
+      - name: ruff (formatação)
+        run: ruff format --check .
+      - name: mypy
+        run: mypy
+
+  testes:
+    name: testes (${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - run: pip install -e ".[dev,playwright]"
+      - name: instalar Chromium
+        run: python -m playwright install --with-deps chromium
+      - name: suíte completa
+        run: pytest tests/ -q --cov=caravana --cov-report=xml --cov-report=term
+      - name: suíte sem navegador
+        # Garante que o núcleo (fluxo, configuração, ledger, relatórios) funciona
+        # em ambientes onde nenhum navegador pode ser instalado.
+        run: pytest tests/ -q -m "not integration"
+      - name: enviar cobertura
+        if: matrix.python == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobertura
+          path: coverage.xml
+
+  exemplo:
+    name: exemplo ponta a ponta
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[dev,playwright]"
+      - run: python -m playwright install --with-deps chromium
+      - name: subir site de demonstração
+        run: |
+          python examples/demo-site/server.py --port 8787 &
+          for _ in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8787/__health && break
+            sleep 0.5
+          done
+      - name: validar fluxos
+        run: |
+          caravana validate --config examples/catalogo/caravana.toml
+          caravana validate --config examples/login/caravana.toml
+          caravana validate --config examples/resiliencia/caravana.toml
+      - name: executar catálogo
+        run: caravana run --config examples/catalogo/caravana.toml --quiet
+      - name: conferir integridade dos artefatos
+        run: caravana verify --run-dir examples/catalogo/.caravana/runs
+      - name: guardar relatório
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-catalogo
+          path: examples/catalogo/.caravana/runs/*/report.html
+
+  empacotamento:
+    name: pacote instalável
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install build twine
+      - run: python -m build
+      - name: conferir metadados
+        run: twine check dist/*
+      - name: instalar o pacote gerado e rodar a CLI
+        run: |
+          pip install dist/*.whl
+          caravana version
+          caravana --help

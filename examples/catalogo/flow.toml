@@ -1,0 +1,53 @@
+# Fluxo de exemplo: percorre um catálogo paginado e extrai os produtos.
+#
+# Conceitos demonstrados:
+#   * `goto` com URL relativa (resolvida contra a base_url da sessão);
+#   * `paginate`, que segue o seletor "próxima" até ele desaparecer;
+#   * `extract` com vários campos e atributos;
+#   * `save_as`, que guarda o resultado em data/<sessão>.json;
+#   * `artifacts`, que gera evidência visual do passo.
+
+[flow]
+name = "catalogo"
+version = "1.0.0"
+description = "Coleta os produtos das três páginas do catálogo de demonstração."
+
+[[flow.steps]]
+id = "abrir_catalogo"
+action = "goto"
+name = "Abrir a primeira página"
+params = { url = "/page/1", wait_until = "domcontentloaded" }
+
+[[flow.steps]]
+id = "confirmar_pagina"
+action = "assert_text"
+name = "Confirmar que a página 1 carregou"
+params = { selector = "#catalog h1", contains = "Página 1" }
+
+[[flow.steps]]
+id = "coletar_nomes"
+action = "paginate"
+name = "Coletar nomes, seguindo a paginação"
+params = { items = "article.product .name", next = "#next", max_pages = 5 }
+save_as = "produtos"
+artifacts = ["screenshot"]
+
+[[flow.steps]]
+id = "detalhe_primeiro"
+action = "goto"
+name = "Abrir o detalhe do primeiro produto"
+params = { url = "/item/1" }
+
+[[flow.steps]]
+id = "extrair_detalhe"
+action = "extract"
+name = "Extrair o detalhe"
+params = { fields = { nome = ".product-name", preco = ".price", sku = ".sku" } }
+save_as = "detalhe"
+
+[[flow.steps]]
+id = "baixar_planilha"
+action = "download"
+name = "Baixar a planilha de exemplo"
+params = { url = "/download/sample.csv", filename = "catalogo.csv" }
+save_as = "planilha"

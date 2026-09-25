@@ -1,0 +1,32 @@
+# Configuração de exemplo: três sessões isoladas em paralelo.
+#
+# Rode o site de demonstração primeiro:
+#   python examples/demo-site/server.py --port 8787
+#
+# Depois:
+#   caravana run --config examples/catalogo/caravana.toml
+
+[flow]
+path = "flow.toml"
+
+[engine]
+workers = 3                  # três navegadores ao mesmo tempo
+max_attempts = 3             # tentativas por passo (1 + 2 retries)
+retry_delay = 0.5
+timeout_ms = 20000
+screenshots = "on_error"     # captura evidência quando algo falha
+respect_robots = true
+run_dir = ".caravana/runs"
+
+[vars]
+base = "http://127.0.0.1:8787"
+
+[[session]]
+id = "loja"
+count = 3                    # loja-1, loja-2, loja-3 (contextos independentes)
+base_url = "${var.base}"
+start_url = "/page/1"
+max_pages = 5
+viewport = [1280, 800]
+locale = "pt-BR"
+timezone = "America/Sao_Paulo"
