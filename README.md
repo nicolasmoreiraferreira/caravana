@@ -1,5 +1,11 @@
 # Caravana
 
+[![CI](https://github.com/nicolasmoreiraferreira/caravana/actions/workflows/ci.yml/badge.svg)](https://github.com/nicolasmoreiraferreira/caravana/actions/workflows/ci.yml)
+[![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![mypy: strict](https://img.shields.io/badge/mypy-strict-blue.svg)](https://mypy-lang.org/)
+
 **Orquestrador resiliente de sessões de navegador isoladas.**
 
 Caravana executa fluxos declarativos de automação web em **N sessões isoladas em
