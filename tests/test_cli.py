@@ -383,6 +383,30 @@ class TestDoctor:
         assert config_check["ok"] is True
         assert "2 sessão" in config_check["detail"]
 
+    def test_doctor_exibe_extra_com_colchetes_intactos(self) -> None:
+        """O Rich trata `[...]` como markup e mutila a instrução exibida.
+
+        O comando sugerido é o que o usuário vai copiar e colar: se sair
+        alterado, a correção não acontece.
+        """
+        result = invoke("doctor")
+        texto = output(result)
+        if "playwright" in texto and "instale com" in texto:
+            assert "pip install caravana[playwright]" in texto
+        assert "mínimo 3.11" in texto
+
+    def test_doctor_aponta_o_proximo_passo_do_navegador(self) -> None:
+        """Faltar o pacote e faltar o Chromium exigem comandos diferentes."""
+        result = invoke("doctor", "--json")
+        payload = json.loads(result.stdout)
+        chromium = next(check for check in payload["checks"] if check["name"] == "chromium")
+        if chromium["ok"]:
+            pytest.skip("navegador instalado neste ambiente")
+        assert (
+            "extra playwright" in chromium["detail"]
+            or "playwright install chromium" in chromium["detail"]
+        )
+
 
 class TestResumeCommand:
     def test_resume_last_sem_historico(self, tmp_path: Path) -> None:
